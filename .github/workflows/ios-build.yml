@@ -1,1 +1,47 @@
 
+name: Build RyZe Hub IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+
+      - name: Build unsigned app
+        run: |
+          xcodebuild \
+            -project RyZeHub.xcodeproj \
+            -scheme RyZeHub \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/RyZeHub.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/RyZeHub.xcarchive/Products/Applications/RyZeHub.app build/Payload/
+          cd build
+          zip -r RyZeHub-unsigned.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: RyZeHub-unsigned-IPA
+          path: build/RyZeHub-unsigned.ipa
+          retention-days: 7
+
